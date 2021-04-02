@@ -1,9 +1,14 @@
 
-type Var = Char
-data LT = Variable Var | Abstr Var LT | Appli LT LT deriving (Show, Eq)
+type Var = String
+data LT = Variable Var | Abstr Var LT | Appli LT LT deriving (Eq)
+
+instance Show LT where
+    show (Abstr var1 cos) = "(\\." ++ var1 ++ " " ++ show cos ++ ")"
+    show (Appli terme_1 terme_2) = "(" ++ show terme_1 ++ " " ++ show terme_2 ++ ")"
+    show (Variable var) = var
 
 freeVars :: LT -> [Var]
-freeVars (Variable x) = [x]
+freeVars (Variable x) = [x] 
 freeVars (Abstr x y) = filter (/= x) (freeVars y)
 freeVars (Appli x y) = freeVars x ++ freeVars y
 
@@ -30,5 +35,10 @@ subst (Appli term_a term_b) subst_value new_value = Appli (subst term_a subst_va
 subst (Abstr abstr_value abstr_term) subst_value new_value
  | abstr_value == subst_value = Abstr abstr_value abstr_term
  | abstr_value /= subst_value && not(inlist abstr_value (freeVars new_value)) = Abstr abstr_value (subst abstr_term subst_value new_value)
- | abstr_value /= subst_value && inlist abstr_value (freeVars new_value) = Abstr (getAlfaValue ['a'..'z'] abstr_term new_value) 
-                                        (subst (subst abstr_term abstr_value (Variable (getAlfaValue ['a'..'z'] abstr_term new_value))) subst_value new_value)
+ | abstr_value /= subst_value && inlist abstr_value (freeVars new_value) = Abstr (getAlfaValue alfabeticalList abstr_term new_value) 
+                                        (subst (subst abstr_term abstr_value (Variable (getAlfaValue alfabeticalList abstr_term new_value))) subst_value new_value)
+                                        where alfabeticalList = ["a", "b", "c", "d", "e"]
+
+-- esta_normal :: LT -> Bool
+-- esta_normal (Variable x) = True
+-- esta_normal (Appli x y) = 
