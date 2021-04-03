@@ -39,6 +39,16 @@ subst (Abstr abstr_value abstr_term) subst_value new_value
                                         (subst (subst abstr_term abstr_value (Variable (getAlfaValue alfabeticalList abstr_term new_value))) subst_value new_value)
                                         where alfabeticalList = ["a", "b", "c", "d", "e"]
 
--- esta_normal :: LT -> Bool
--- esta_normal (Variable x) = True
--- esta_normal (Appli x y) = 
+esAbstraccio :: LT -> Bool
+esAbstraccio (Abstr x y) = True
+esAbstraccio _ = False
+
+
+
+estaNormal :: LT -> Bool
+estaNormal (Variable x) = True
+estaNormal (Appli term_a term_b)
+ | esAbstraccio term_a = False 
+ | otherwise = estaNormal term_a && estaNormal term_b
+estaNormal (Abstr abstr_value abstr_term) = estaNormal abstr_term
+
