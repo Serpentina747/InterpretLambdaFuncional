@@ -52,3 +52,16 @@ estaNormal (Appli term_a term_b)
  | otherwise = estaNormal term_a && estaNormal term_b
 estaNormal (Abstr abstr_value abstr_term) = estaNormal abstr_term
 
+
+beta_redueix :: LT -> LT
+beta_redueix (Appli (Abstr a b) c) = subst b a c
+
+redueix_un_n :: LT -> LT
+redueix_un_n (Variable x) = Variable x
+redueix_un_n (Abstr x y)
+ | not (estaNormal y) = beta_redueix y
+ | otherwise = Abstr x y
+redueix_un_n (Appli x y)
+ | not (estaNormal x) = beta_redueix x
+ | not (estaNormal y) = beta_redueix y
+ | otherwise = Appli x y
