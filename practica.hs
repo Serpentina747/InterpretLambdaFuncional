@@ -1,3 +1,4 @@
+import Data.Map as Map
 
 -- =================================
 --       DEFINICIO DE DADES
@@ -5,7 +6,7 @@
 
 type Var = String
 type VarDB = Int
-type Index = (VarDB, Int)
+type Index = Map String Int
 type Context = [(String, Int)]
 
 data LT = Variable Var | Abstr Var LT | Appli LT LT deriving (Eq)
@@ -29,13 +30,13 @@ instance Show LTDB where
 
 
 freeVars :: LT -> [Var]
-freeVars (Variable x) = [x] 
-freeVars (Abstr x y) = filter (/= x) (freeVars y)
+freeVars (Variable x) = [x]
+freeVars (Abstr x y) = Prelude.filter (/= x) (freeVars y)
 freeVars (Appli x y) = freeVars x ++ freeVars y
 
 boundVars :: LT -> [Var]
 boundVars (Variable x) = [x]
-boundVars (Abstr x y) = filter (== x) (freeVars y)
+boundVars (Abstr x y) = Prelude.filter (== x) (freeVars y)
 boundVars (Appli x y) = freeVars x ++ freeVars y
 
 inlist :: Var -> [Var] -> Bool
@@ -56,7 +57,7 @@ subst (Appli term_a term_b) subst_value new_value = Appli (subst term_a subst_va
 subst (Abstr abstr_value abstr_term) subst_value new_value
  | abstr_value == subst_value = Abstr abstr_value abstr_term
  | abstr_value /= subst_value && not(inlist abstr_value (freeVars new_value)) = Abstr abstr_value (subst abstr_term subst_value new_value)
- | abstr_value /= subst_value && inlist abstr_value (freeVars new_value) = Abstr (getAlfaValue alfabeticalList abstr_term new_value) 
+ | abstr_value /= subst_value && inlist abstr_value (freeVars new_value) = Abstr (getAlfaValue alfabeticalList abstr_term new_value)
                                         (subst (subst abstr_term abstr_value (Variable (getAlfaValue alfabeticalList abstr_term new_value))) subst_value new_value)
                                         where alfabeticalList = ["a", "b", "c", "d", "e"]
 
@@ -69,7 +70,7 @@ esAbstraccio _ = False
 estaNormal :: LT -> Bool
 estaNormal (Variable x) = True
 estaNormal (Appli term_a term_b)
- | esAbstraccio term_a = False 
+ | esAbstraccio term_a = False
  | otherwise = estaNormal term_a && estaNormal term_b
 estaNormal (Abstr abstr_value abstr_term) = estaNormal abstr_term
 
@@ -103,7 +104,7 @@ lNormalitzaN lt = if not(estaNormal lt) then lt:lNormalitzaN (redueixUnN lt)
 
 
 lNormalitzaA :: LT -> [LT]
-lNormalitzaA lt = if not(estaNormal lt) then lt:lNormalitzaA (betaRedueix lt)
+lNormalitzaA lt = if not(estaNormal lt) then lt:lNormalitzaA (redueixUnA lt)
                                 else [lt]
 
 
@@ -119,3 +120,31 @@ normalitzaA lt = (steps, ltfinal)
     where
         steps = length(lNormalitzaA lt) - 1
         ltfinal = last(lNormalitzaA lt)
+
+
+deBruijn :: LT -> LTDB
+deBruijn lt = deBruijn2 lt (fromList [])
+
+deBruijn2 :: LT -> Index -> LTDB
+deBruijn2 (Variable x) index = if(member x index) then VariableDB (index ! x) else error "la variable es lliure"
+deBruijn2 (Abstr x y) index = AbstrDB (deBruijn2 y (actualitza (insert x (-1) index)))
+deBruijn2 (Appli x y) index = AppliDB (deBruijn2 x index) (deBruijn2 y index)
+
+actualitza :: Index -> Index
+actualitza index = fromList (crearIndex (toList index))
+
+crearIndex ::[(String, Int)] -> [(String, Int)]
+crearIndex [(x,y)] = [(x,(y+1))]
+crearIndex ((x,y):xs) = (x,(y+1)):crearIndex xs
+
+-- deBrujin :: LT -> Index -> LTDB
+-- deBrujin (Variable x) i = if (n == -1) then (VariableDB 5) else (VariableDB n)
+    -- where 
+       -- n = exists (Variable x) 0 i
+-- deBrujin (Abstr x y) i =  if (n == -1) then AbstrDB (deBrujin y (insert (x,0) 0 i)) else AbstrDB (deBrujin y (insert (x, n + 1) 0 i))
+    -- where 
+        -- n = exists (Variable x) 0 i
+
+-- exists :: LT -> Int -> Index -> Int
+-- exists (Variable x) valor index = if (size index > valor) then (if(not (member (x, valor) index)) then (exists (Variable x) (valor+1) index) else valor) else (-1)
+
