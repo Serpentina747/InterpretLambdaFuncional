@@ -55,13 +55,22 @@ estaNormal (Abstr abstr_value abstr_term) = estaNormal abstr_term
 
 beta_redueix :: LT -> LT
 beta_redueix (Appli (Abstr a b) c) = subst b a c
+beta_reudeix a = a
 
 redueix_un_n :: LT -> LT
 redueix_un_n (Variable x) = Variable x
-redueix_un_n (Abstr x y)
- | not (estaNormal y) = beta_redueix y
- | otherwise = Abstr x y
-redueix_un_n (Appli x y)
- | not (estaNormal x) = beta_redueix x
- | not (estaNormal y) = beta_redueix y
- | otherwise = Appli x y
+redueix_un_n (Appli (Abstr x y) b) = beta_redueix (Appli (Abstr x y) b)
+redueix_un_n (Appli a b)
+ | not (estaNormal a) = (Appli (redueix_un_n a) b)
+ | not (estaNormal b) = (Appli a (redueix_un_n b))
+ | otherwise = Appli a b
+redueix_un_n (Abstr x y) = if estaNormal y then Abstr x y else Abstr x (redueix_un_n y)
+
+
+redueix_un_a :: LT -> LT
+redueix_un_a (Variable x) = Variable x
+redueix_un_a (Appli a b)
+ | not (estaNormal a) = (Appli (redueix_un_a a) b)
+ | not (estaNormal b) = (Appli a (redueix_un_a b))
+ | not (estaNormal (Appli a b)) = beta_redueix (Appli a b) -- Redex
+redueix_un_a (Abstr x y) = if estaNormal y then Abstr x y else Abstr x (redueix_un_a y)
