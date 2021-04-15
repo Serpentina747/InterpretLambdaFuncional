@@ -1,11 +1,32 @@
 
+-- =================================
+--       DEFINICIO DE DADES
+-- =================================
+
 type Var = String
+type VarDB = Int
+type Index = (VarDB, Int)
+type Context = [(String, Int)]
+
 data LT = Variable Var | Abstr Var LT | Appli LT LT deriving (Eq)
+data LTDB = VariableDB VarDB | AppliDB LTDB LTDB | AbstrDB LTDB deriving (Eq)
+
+
+
+-- =================================
+--            FUNCIONS
+-- =================================
 
 instance Show LT where
-    show (Abstr var1 cos) = "(\\." ++ var1 ++ " " ++ show cos ++ ")"
+    show (Abstr var1 terme) = "(\\." ++ var1 ++ " " ++ show terme ++ ")"
     show (Appli terme_1 terme_2) = "(" ++ show terme_1 ++ " " ++ show terme_2 ++ ")"
     show (Variable var) = var
+
+instance Show LTDB where
+    show (AbstrDB terme) = "(\\." ++ show terme ++ ")"
+    show (AppliDB terme_1 terme_2) = "(" ++ show terme_1 ++ " " ++ show terme_2 ++ ")"
+    show (VariableDB var) = show var
+
 
 freeVars :: LT -> [Var]
 freeVars (Variable x) = [x] 
@@ -53,24 +74,48 @@ estaNormal (Appli term_a term_b)
 estaNormal (Abstr abstr_value abstr_term) = estaNormal abstr_term
 
 
-beta_redueix :: LT -> LT
-beta_redueix (Appli (Abstr a b) c) = subst b a c
-beta_reudeix a = a
+betaRedueix :: LT -> LT
+betaRedueix (Appli (Abstr a b) c) = subst b a c
+betaRedueix a = a
 
-redueix_un_n :: LT -> LT
-redueix_un_n (Variable x) = Variable x
-redueix_un_n (Appli (Abstr x y) b) = beta_redueix (Appli (Abstr x y) b)
-redueix_un_n (Appli a b)
- | not (estaNormal a) = (Appli (redueix_un_n a) b)
- | not (estaNormal b) = (Appli a (redueix_un_n b))
+redueixUnN :: LT -> LT
+redueixUnN (Variable x) = Variable x
+redueixUnN (Appli (Abstr x y) b) = betaRedueix (Appli (Abstr x y) b)
+redueixUnN (Appli a b)
+ | not (estaNormal a) = Appli (redueixUnN a) b
+ | not (estaNormal b) = Appli a (redueixUnN b)
  | otherwise = Appli a b
-redueix_un_n (Abstr x y) = if estaNormal y then Abstr x y else Abstr x (redueix_un_n y)
+redueixUnN (Abstr x y) = if estaNormal y then Abstr x y else Abstr x (redueixUnN y)
 
 
-redueix_un_a :: LT -> LT
-redueix_un_a (Variable x) = Variable x
-redueix_un_a (Appli a b)
- | not (estaNormal a) = (Appli (redueix_un_a a) b)
- | not (estaNormal b) = (Appli a (redueix_un_a b))
- | not (estaNormal (Appli a b)) = beta_redueix (Appli a b) -- Redex
-redueix_un_a (Abstr x y) = if estaNormal y then Abstr x y else Abstr x (redueix_un_a y)
+redueixUnA :: LT -> LT
+redueixUnA (Variable x) = Variable x
+redueixUnA (Appli a b)
+ | not (estaNormal a) = Appli (redueixUnA a) b
+ | not (estaNormal b) = Appli a (redueixUnA b)
+ | not (estaNormal (Appli a b)) = betaRedueix (Appli a b) -- Redex
+redueixUnA (Abstr x y) = if estaNormal y then Abstr x y else Abstr x (redueixUnA y)
+
+
+lNormalitzaN :: LT -> [LT]
+lNormalitzaN lt = if not(estaNormal lt) then lt:lNormalitzaN (redueixUnN lt)
+                                else [lt]
+
+
+lNormalitzaA :: LT -> [LT]
+lNormalitzaA lt = if not(estaNormal lt) then lt:lNormalitzaA (betaRedueix lt)
+                                else [lt]
+
+
+normalitzaN :: LT -> (Int, LT)
+normalitzaN lt = (steps, ltfinal)
+    where
+        steps = length(lNormalitzaN lt) - 1
+        ltfinal = last(lNormalitzaN lt)
+
+
+normalitzaA :: LT -> (Int, LT)
+normalitzaA lt = (steps, ltfinal)
+    where
+        steps = length(lNormalitzaA lt) - 1
+        ltfinal = last(lNormalitzaA lt)
