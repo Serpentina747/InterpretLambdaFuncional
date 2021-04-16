@@ -27,6 +27,9 @@ instance Show LT where
 instance Eq LT where
     x == y = deBruijn x (freeVars x) == deBruijn y (freeVars y)
 
+instance Ord LT where
+    x <= y = boundVars x <= boundVars y
+
 instance Show LTDB where
     show (AbstrDB terme) = "(\\." ++ show terme ++ ")"
     show (AppliDB terme_1 terme_2) = "(" ++ show terme_1 ++ " " ++ show terme_2 ++ ")"
@@ -96,7 +99,7 @@ estaNormal (Appli term_a term_b)
 estaNormal (Abstr abstr_value abstr_term) = estaNormal abstr_term
 
 --Paràmetres:   - Lambda Terme
---Funció:       - En cas qeu el Lambda Terme sigui un redex, retorna el Lambda Terme havent resolt el redex, altrament retorna el mateix Lambda Terme.
+--Funció:       - En cas que el Lambda Terme sigui un redex, retorna el Lambda Terme havent resolt el redex, altrament retorna el mateix Lambda Terme.
 betaRedueix :: LT -> LT
 betaRedueix (Appli (Abstr a b) c) = subst b a c
 betaRedueix a = a
