@@ -163,34 +163,41 @@ aDeBruijn lt context = aDeBruijn2 lt empty (fromList (crearContext context 0))
 
 aDeBruijn2 :: LT -> Index -> Context -> LTDB
 aDeBruijn2 (Variable x) index context = if member x index then VariableDB (index ! x) else VariableDB (context ! x)
-aDeBruijn2 (Abstr x y) index context = AbstrDB (aDeBruijn2 y (actualitza (insert x (-1) index )) (fromList (shiftContext  (toList context))))
+aDeBruijn2 (Abstr x y) index context = AbstrDB (aDeBruijn2 y (actualitza (insert x (-1) index )) (fromList (shift  (toList context))))
 aDeBruijn2 (Appli x y) index context = AppliDB (aDeBruijn2 x index context) (aDeBruijn2 y index context)
 
 actualitza :: Index -> Index
-actualitza index = fromList (crearIndex (toList index))
-
-crearIndex ::[(String, Int)] -> [(String, Int)]
-crearIndex [(x,y)] = [(x,y+1)]
-crearIndex ((x,y):xs) = (x,y+1):crearIndex xs
+actualitza index = fromList (shift (toList index))
 
 crearContext :: [String] -> Int -> [(String, Int)]
 crearContext [x] valor = [(x,valor)]
 crearContext (x:xs) valor = (x,valor) : crearContext xs (valor + 1)
 
-shiftContext ::  [(String, Int)] ->  [(String, Int)]
-shiftContext [(x,y)] = [(x, y+1)]
-shiftContext ((x,y):xs) = (x,y+1) : shiftContext xs
+shift ::  [(String, Int)] ->  [(String, Int)]
+shift l = [(x,y+1) | (x,y) <- l]
 
 
 deDeBruijn :: LTDB -> (LT, Context)
 deDeBruijn ltdb = deDeBruijn2 ltdb empty empty
 
 deDeBruijn2 :: LTDB -> Index2 -> Context -> (LT, Context)
-deDeBruijn2 (VariableDB x) index context =  (Variable (index ! x), empty)
-deDeBruijn2 (AbstrDB x) index context = (Abstr novaVariable (fst (deDeBruijn2 x (fromList (actualitzarIndex novaVariable (toList index))) context)), empty)
+deDeBruijn2 (VariableDB x) index context =  if member x index then (Variable (index ! x), context) else (Variable valorDif, insert valorDif x context)
+    where alfList = ["x", "y", "s", "z", "t", "p", "f", "g", "a", "b", "c", "d", "e"]
+          valorDif = valorDiferent alfList context (toList index)
+deDeBruijn2 (AbstrDB x) index context = (Abstr novaVariable abstrLT, nouContext)
     where alfList = ["x", "y", "s", "z", "t", "p", "f", "g", "a", "b", "c", "d", "e"]
           novaVariable = crearVariable alfList index
-deDeBruijn2 (AppliDB x y) index context = (Appli (fst (deDeBruijn2 x index context)) (fst (deDeBruijn2 y index context)), empty)
+          abstrLT = fst crida
+          nouContext = snd crida
+          crida = deDeBruijn2 x (fromList (actualitzarIndex novaVariable (toList index))) context
+deDeBruijn2 (AppliDB x y) index context = (Appli esquerraLT dretaLT, contextDreta)
+    where
+        esquerraLT = fst cridaEsquerra
+        dretaLT = fst cridaDreta
+        contextEsquerra = snd cridaEsquerra
+        cridaEsquerra = deDeBruijn2 x index context
+        cridaDreta =  deDeBruijn2 y index contextEsquerra
+        contextDreta =  snd cridaDreta
 
 existeixVariable :: String -> [(Int, String)] -> Bool
 existeixVariable var [] = False
@@ -206,6 +213,14 @@ crearVariable :: [String] -> Index2 -> Var
 crearVariable [] index = error "error: no remaining variables"
 crearVariable [x] index = if existeixVariable x (toList index) then crearVariable [] index else x
 crearVariable (x:xs) index = if existeixVariable x (toList index) then crearVariable xs index else x
+
+
+valorDiferent :: [String]->  Context -> [(Int, String)]  -> String
+valorDiferent [x] context l = if existeixVariable x l || member x context then error "No value available" else x
+valorDiferent (x:xs) context l = if existeixVariable x l ||  member x context then valorDiferent xs context l else x
+
+
+
 
 
 
