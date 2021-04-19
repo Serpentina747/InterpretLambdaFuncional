@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 import Data.Map as Map
 
 -- =================================
@@ -36,8 +37,10 @@ instance Show LTDB where
     show (VariableDB var) = show var
 
 instance Eq LTDB where
-    x == y = True
-
+    VariableDB x == VariableDB y = x == y
+    AppliDB x y == AppliDB z t = x == z && y == t
+    AbstrDB x == AbstrDB y = x == y
+    _ == _ = False
 
 --Paràmetres:   - Lambda Terme
 --Funció:       - Retorna una llista de variables Var lliures
@@ -57,16 +60,20 @@ boundVars (Appli x y) = freeVars x ++ freeVars y
 --              - llista de variables a
 --Funció:       - Retorna 'true' si la variable a existeix a la llista, 'false' altrament
 inlist :: Eq a => a -> [a] -> Bool
-inlist _ [] = False
+inlist y [x] = y == x
 inlist y (x:xs) = x == y || inlist y xs
 
 --Paràmetres:   - llista de variables Var
 --              - Lambda Terme
 --              - Lambda Terme
 --Funció:       - Retorna una variable Var que no estigui present com a variable lliure en els dos Lambda Termes
-getAlfaValue :: [Var] -> LT -> LT -> Var
-intlist [] _ _ = error "There's no alfa value for alfa conversion"
-getAlfaValue  (x:xs) y z = if not(inlist x (freeVars y)) && not(inlist x (freeVars z)) then x else getAlfaValue xs y z
+-- getAlfaValue :: [Var] -> LT -> LT -> Var
+-- intlist [] _ _ = error "There's no alfa value for alfa conversion"
+-- getAlfaValue  (x:xs) y z = if not(inlist x (freeVars y)) && not(inlist x (freeVars z)) then x else getAlfaValue xs y z
+
+getAlfaValue :: Var -> LT -> LT -> Var
+getAlfaValue  x y z = if not(inlist x (freeVars y)) && not(inlist x (freeVars z)) 
+    && not(inlist x (boundVars y)) && not(inlist x (boundVars y)) then x else getAlfaValue (x ++ "'") y z
 
 
 --Paràmetres:   - Lambda Terme
@@ -81,9 +88,8 @@ subst (Appli term_a term_b) subst_value new_value = Appli (subst term_a subst_va
 subst (Abstr abstr_value abstr_term) subst_value new_value
  | abstr_value == subst_value = Abstr abstr_value abstr_term
  | abstr_value /= subst_value && not(inlist abstr_value (freeVars new_value)) = Abstr abstr_value (subst abstr_term subst_value new_value)
- | abstr_value /= subst_value && inlist abstr_value (freeVars new_value) = Abstr (getAlfaValue alfabeticalList abstr_term new_value)
-                                        (subst (subst abstr_term abstr_value (Variable (getAlfaValue alfabeticalList abstr_term new_value))) subst_value new_value)
-                                        where alfabeticalList = ["a", "b", "c", "d", "e"]
+ | abstr_value /= subst_value && inlist abstr_value (freeVars new_value) = Abstr (getAlfaValue "x" abstr_term new_value)
+                                        (subst (subst abstr_term abstr_value (Variable (getAlfaValue "x" abstr_term new_value))) subst_value new_value)
 
 --Paràmetres:   - Lambda Terme
 --Funció:       - Retorna 'true' si el Lambda Terme correspon amb una abstracció, 'false' altrament
@@ -182,11 +188,11 @@ deDeBruijn ltdb = deDeBruijn2 ltdb empty empty
 
 deDeBruijn2 :: LTDB -> Index2 -> Context -> (LT, Context)
 deDeBruijn2 (VariableDB x) index context =  if member x index then (Variable (index ! x), context) else (Variable valorDif, insert valorDif x context)
-    where alfList = ["x", "y", "s", "z", "t", "p", "f", "g", "a", "b", "c", "d", "e"]
-          valorDif = valorDiferent alfList context (toList index)
+    where
+          valorDif = valorDiferent "x" context (toList index)
 deDeBruijn2 (AbstrDB x) index context = (Abstr novaVariable abstrLT, nouContext)
-    where alfList = ["x", "y", "s", "z", "t", "p", "f", "g", "a", "b", "c", "d", "e"]
-          novaVariable = crearVariable alfList index
+    where
+          novaVariable = valorDiferent "x" context (toList index)
           abstrLT = fst crida
           nouContext = snd crida
           crida = deDeBruijn2 x (fromList (actualitzarIndex novaVariable (toList index))) context
@@ -209,15 +215,8 @@ actualitzarIndex var [] = [(0, var)]            -- Quan arriba al final, inserei
 actualitzarIndex var [(x,y)] = (0,var) : [(x+1,y)]     -- Actualitzem la distància corresponen a la variable
 actualitzarIndex var ((x,y): xs) = (x+1, y): actualitzarIndex var xs               -- Acualitzem la distància de la variable actual i seguim amb la cua
 
-crearVariable :: [String] -> Index2 -> Var
-crearVariable [] index = error "error: no remaining variables"
-crearVariable [x] index = if existeixVariable x (toList index) then crearVariable [] index else x
-crearVariable (x:xs) index = if existeixVariable x (toList index) then crearVariable xs index else x
-
-
-valorDiferent :: [String]->  Context -> [(Int, String)]  -> String
-valorDiferent [x] context l = if existeixVariable x l || member x context then error "No value available" else x
-valorDiferent (x:xs) context l = if existeixVariable x l ||  member x context then valorDiferent xs context l else x
+valorDiferent :: String ->  Context -> [(Int, String)]  -> Var
+valorDiferent var context l = if existeixVariable var l ||  member var context then valorDiferent (var ++ "'") context l else var
 
 
 
