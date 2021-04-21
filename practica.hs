@@ -16,12 +16,121 @@ data LTDB = VariableDB VarDB | AppliDB LTDB LTDB | AbstrDB LTDB
 
 
 -- =================================
+--    DEFINICIO DE METALLENGUATGE
+-- =================================
+
+identitat :: LT
+identitat = (Abstr "x" (Variable "x"))
+
+true :: LT
+true =  (Abstr "x" (Abstr "y" (Variable "x")))
+
+false :: LT
+false = (Abstr "x" (Abstr "y" (Variable "y")))
+
+-- Per no crear conflicte amb la operacio not, definim notM en ves de not
+notM :: LT
+notM = (Abstr "t" (Appli(Appli (Variable "t")(false))(true)))
+
+-- Per no crear conflicte amb la operacio and, definim andM en ves de and
+andM :: LT
+andM = (Abstr "x" (Abstr "y" (Appli (Appli (Variable "x")(Variable "y"))(Variable "x"))))
+
+-- Per no crear conflicte amb la operacio or, definim orM en ves de or
+orM :: LT
+orM = (Abstr "x" (Abstr "y" (Appli (Appli (Variable "x")(Variable "x"))(Variable "y"))))
+--orM = (Abstr "x" (Abstr "y" (Appli (Appli (Appli ((notM)(Appli (andM) (Appli (notM)(Variable "x"))))(Appli (notM)(Variable "y")))))))
+
+-- Per no crear conflicte amb la operacio xor, definim xorM en ves de xor
+xorM :: LT
+xorM = (Abstr "x" (Abstr "y" (Appli (Appli (orM)(Appli (Appli (andM)(Appli (notM)(Variable "x")))(Variable "y")))(Appli (Appli (andM)(Variable "x"))(Appli (notM)(Variable "y")))) ))
+
+suc :: LT
+suc = (Abstr "n" (Abstr "f" (Abstr "x" (Appli (Variable "n") (Appli (Variable "f")(Appli (Variable "f")(Variable "x")))))))
+
+fstM :: LT
+fstM = (Abstr "x" (Appli (Variable "x") (true)))
+
+sndM :: LT
+sndM = (Abstr "x" (Appli (Variable "x") (false)))
+
+suma :: LT
+suma = (Abstr "m" (Abstr"n" (Abstr "f" (Abstr "x" (Appli (Appli (Variable "m")(Variable "f"))(Appli (Appli(Variable "n")(Variable "f"))(Variable "x")))))))
+
+producte :: LT
+producte = (Abstr "m" (Abstr "n" (Abstr "f" (Abstr "x"(Appli (Appli(Variable "m")(Appli(Variable "n")(Variable "f")))(Variable "x") )))))
+
+esZero :: LT
+esZero = (Abstr "n" (Appli (Appli(Variable "n")(Abstr "x" false))(true)))
+
+tupla :: LT
+tupla = (Abstr "x" (Abstr "y" (Abstr "p" (Appli (Appli (Variable "p")(Variable "x"))(Variable "y")))))
+
+prefn :: LT
+prefn = (Abstr "f" (Abstr "p" (Appli (Appli (tupla)(false))(Appli(Appli (Appli (fstM)(Variable "p"))(Appli(sndM)(Variable "p")))(Appli(Variable "f")(Appli (sndM)(Variable "p") ))) )))
+--λf . λp. [false , (fst p → snd p | f ( snd p))]
+
+prec :: LT
+prec = (Abstr "n" (Abstr "f" (Abstr "x" (Appli (sndM)(Appli(Appli(Variable "n")(Appli(prefn)(Variable "f")))(Appli(Appli(tupla)(true))(Variable "x")))))))
+-- (λn. λf . λx. (snd (n (prefn f ) [true, x])))
+
+fact :: LT
+fact = (Appli (t)(Abstr "f" (Abstr "n" (Appli (Appli (Appli(esZero)(Variable "n"))(un))(Appli (Appli (producte)(Variable "n"))(Appli (Variable "f")(Appli (prec)(Variable "n") ) ) ) ))))
+--(T (λf . λn. ( eszero n → 1 | ∗ n (f (prec n)))))
+
+         ------------------------------
+         --        COMBINADORS       --
+         ------------------------------
+
+k :: LT
+k = (Abstr "x" (Abstr "y" (Variable "x")))
+
+kPrima :: LT
+kPrima = (Abstr "x" (Abstr "y" (Variable "y")))
+
+s :: LT
+s = (Abstr "x" (Abstr "y" (Abstr "z" (Appli (Appli (Variable "x")(Variable "z"))(Appli (Variable "y")(Variable "z"))))))
+
+g :: LT
+g = (Abstr "x"(Appli (Abstr "y" (Abstr "x" (Appli (Variable "y")(Variable "y"))))(Abstr "y" (Abstr "x" (Appli (Variable "y")(Variable "y"))))))
+--λx.( (λy.(λx.y y)) (λy.(λx.y y)) )
+
+y :: LT
+y = (Abstr "f" (Appli (Abstr "x" (Appli (Variable "f")(Appli (Variable "x")(Variable "x") ) )) (Abstr "x" (Appli (Variable "f")(Appli (Variable "x")(Variable "x") ) )) ))
+
+t :: LT
+t = (Appli (Abstr "x" (Abstr "y" (Appli (Variable "y")(Appli (Appli (Variable "x")(Variable "x"))(Variable "y")))))(Abstr "x" (Abstr "y" (Appli (Variable "y")(Appli (Appli (Variable "x")(Variable "x"))(Variable "y"))))))
+
+
+         ------------------------------
+         --         NATURALS         --
+         ------------------------------
+
+-- ENS SERVIRAN PER PROVAR LES FUNCIONS DEFINIDES A DALT
+
+zero :: LT
+zero = (Abstr "f" (Abstr "x" (Variable "x")))
+
+un :: LT
+un = (Abstr "f" (Abstr "x" (Appli (Variable "f")(Variable "x"))))
+
+dos :: LT
+dos = (Abstr "f" (Abstr "x" (Appli (Variable "f")(Appli (Variable "f")(Variable "x")))))
+
+tres :: LT
+tres = (Abstr "f" (Abstr "x" (Appli (Variable "f")(Appli(Variable "f")(Appli (Variable "f")(Variable "x"))))))
+--tres = (Abstr "f" (Abstr "x" (Appli (Variable "f")(Appli (Variable "f")(Appli (Variable "f")(Variable "x") )))))
+
+quatre :: LT
+quatre = (Abstr "f" (Abstr "x" (Appli (Variable "f")(Appli (Variable "f")(Appli (Variable "f")(Appli (Variable "f")(Variable "x")))))))
+
+-- =================================
 --            FUNCIONS
 -- =================================
 
 
 instance Show LT where
-    show (Abstr var1 terme) = "(\\." ++ var1 ++ " " ++ show terme ++ ")"
+    show (Abstr var1 terme) = "(\\" ++ var1 ++ ". " ++ show terme ++ ")"
     show (Appli terme_1 terme_2) = "(" ++ show terme_1 ++ " " ++ show terme_2 ++ ")"
     show (Variable var) = var
 
@@ -60,6 +169,7 @@ boundVars (Appli x y) = freeVars x ++ freeVars y
 --              - llista de variables a
 --Funció:       - Retorna 'true' si la variable a existeix a la llista, 'false' altrament
 inlist :: Eq a => a -> [a] -> Bool
+inlist y [] = False
 inlist y [x] = y == x
 inlist y (x:xs) = x == y || inlist y xs
 
@@ -72,7 +182,7 @@ inlist y (x:xs) = x == y || inlist y xs
 -- getAlfaValue  (x:xs) y z = if not(inlist x (freeVars y)) && not(inlist x (freeVars z)) then x else getAlfaValue xs y z
 
 getAlfaValue :: Var -> LT -> LT -> Var
-getAlfaValue  x y z = if not(inlist x (freeVars y)) && not(inlist x (freeVars z)) 
+getAlfaValue  x y z = if not(inlist x (freeVars y)) && not(inlist x (freeVars z))
     && not(inlist x (boundVars y)) && not(inlist x (boundVars y)) then x else getAlfaValue (x ++ "'") y z
 
 
@@ -217,15 +327,3 @@ actualitzarIndex var ((x,y): xs) = (x+1, y): actualitzarIndex var xs            
 
 valorDiferent :: String ->  Context -> [(Int, String)]  -> Var
 valorDiferent var context l = if existeixVariable var l ||  member var context then valorDiferent (var ++ "'") context l else var
-
-
-
-
-
-
-
-
-
-
-
-
