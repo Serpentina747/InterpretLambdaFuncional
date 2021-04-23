@@ -73,6 +73,7 @@ prec :: LT
 prec = (Abstr "n" (Abstr "f" (Abstr "x" (Appli (sndM) (Appli (Appli (Variable "n") (Appli (prefn) (Variable "f"))) (Appli (Appli (tupla) (true)) (Variable "x")))))))
 -- (λn. λf . λx. (snd (n (prefn f ) [true, x])))
 
+prec2 :: LT
 prec2 = (Abstr "n" (Abstr "f" (Abstr "x"  (Appli  (Appli (Appli (Variable "n") (Abstr "g" (Abstr "h" (Appli (Variable "h") (Appli (Variable "g") (Variable "f")))))) (Abstr "u" (Variable "x")))  (Abstr "u" (Variable "u"))))))
 
 fact :: LT
@@ -365,15 +366,3 @@ actualitzarIndex var ((x,y): xs) = (x+1, y): actualitzarIndex var xs
 --              - de les tuples de la llista de tuples passada com a paràmetre
 valorDiferent :: String ->  Context -> [(Int, String)]  -> Var
 valorDiferent var context l = if existeixVariable var l ||  member var context then valorDiferent (var ++ "'") context l else var
-
-
-
-
-
-
-
-
-
-
-
-
